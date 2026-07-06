@@ -32,7 +32,7 @@ dependencies = [
     "pyrootutils>=1.0.4",
     "rich>=14.2.0",
     "rootutils>=1.0.7",
-    "scikit-learn>=1.8.0",
+    "scikit-learn>=1.7.0",
     "scipy>=1.16.3",
     "setuptools",
     "seaborn>=0.13.2",
@@ -43,9 +43,7 @@ dependencies = [
     "tos>=2.8.7",
     "tqdm>=4.67.1",
     "transformers>=4.50.0",
-    "wandb>=0.23.1",
-    "openfold",
-    "runner",
+    "wandb>=0.23.1"
 ]
 [[tool.uv.index]]
 name = "pytorch-cu128"
