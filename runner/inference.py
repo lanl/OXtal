@@ -33,25 +33,29 @@ logger = logging.getLogger(__name__)
 
 
 class InferenceRunner:
-    def __init__(self, configs: Any) -> None:
+    def __init__(self, configs: Any,fabric:Fabric|None = None) -> None:
         self.configs = configs
-        self.init_env()
+        self.init_env(fabric)
         self.init_basics()
         self.init_model()
         self.load_checkpoint()
         self.init_dumper(need_atom_confidence=configs.need_atom_confidence)
 
-    def init_env(self) -> None:
+    def init_env(self,fabric:Fabric|None = None) -> None:
         """Init pytorch/cuda envs."""
-        self.fabric = Fabric(
-            strategy=DDPStrategy(find_unused_parameters=False),
-            num_nodes=self.configs.fabric.num_nodes,
-            loggers=[hydra.utils.instantiate(logger) for _, logger in self.configs.logger.items()],
-        )
+        if fabric is None:
+            self.fabric = Fabric(
+                strategy=DDPStrategy(find_unused_parameters=False),
+                num_nodes=self.configs.fabric.num_nodes,
+                loggers=[hydra.utils.instantiate(logger) for _, logger in self.configs.logger.items()],
+            )
+            self.fabric.launch()
+        else:
+            self.fabric = fabric 
         self.print(
             f"Fabric: {self.fabric}, rank: {self.fabric.global_rank}, world_size: {self.fabric.world_size}"
         )
-        self.fabric.launch()
+        
         self.device = self.fabric.device
         torch.cuda.set_device(self.device)
         os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0,8.9"
@@ -168,9 +172,11 @@ class InferenceRunner:
         if self.fabric.is_global_zero:
             logging.debug(msg)
 
-
 @hydra.main(config_path="../configs", config_name="inference.yaml", version_base=None)
-def main(configs: DictConfig):
+def main(configs:DictConfig):
+    return _main(configs)
+
+def _main(configs: DictConfig,fabric:Fabric|None = None):
     LOG_FORMAT = "%(asctime)s,%(msecs)-3d %(levelname)-8s [%(filename)s:%(lineno)s %(funcName)s] %(message)s"
     logging.basicConfig(
         format=LOG_FORMAT,
@@ -180,7 +186,7 @@ def main(configs: DictConfig):
     )
     print_config_tree(configs, resolve=True)
     # Runner
-    runner = InferenceRunner(configs)
+    runner = InferenceRunner(configs,fabric = fabric)
 
     if isinstance(configs.seeds, int):
         configs.seeds = [configs.seeds]
