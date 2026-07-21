@@ -187,7 +187,6 @@ def _main(configs: DictConfig,fabric:Fabric|None = None):
     print_config_tree(configs, resolve=True)
     # Runner
     runner = InferenceRunner(configs,fabric = fabric)
-
     if isinstance(configs.seeds, int):
         configs.seeds = [configs.seeds]
     num_inference_seeds = configs.get("num_inference_seeds")
@@ -208,7 +207,8 @@ def _main(configs: DictConfig,fabric:Fabric|None = None):
 
     num_data, curr_seed, pre_log_dicts = len(dataloader.dataset), None, []
     # inference_times = []
-    for batch in dataloader:
+    
+    for i, batch in enumerate(dataloader):
         try:
             data, atom_array, sample2feat, data_error_message = batch[0]
 
@@ -240,6 +240,12 @@ def _main(configs: DictConfig,fabric:Fabric|None = None):
                 f"N_asym {data['N_asym'].item()}, N_token {data['N_token'].item()}, "
                 f"N_atom {data['N_atom'].item()}"
             )
+
+            if configs.sync_inference and i%configs.sync_iterations == 0:
+                try:
+                    runner.fabric.barrier()
+                except Exception as e:
+                    logger.error(e)
 
             prediction = runner.predict(data, sample2feat)
 

@@ -11,6 +11,8 @@ load_checkpoint_path: null
 use_msa: false
 crystal_only: false
 num_workers: 8
+sync_inference: True
+sync_iterations: 50
 
 task_manager:
   inference_task: "unconditional_structure"
